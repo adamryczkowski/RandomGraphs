@@ -1,0 +1,16 @@
+[project]
+name = "RandomGraph"
+description = "Libraries that help to generate random graphs for the purpose of testing algorithms."
+version = "0.1.0"
+authors = [
+    { name = "Adam Ryczkowski", email = "adam@statystyka.net" }
+]
+dependencies = [
+    "numpy",
+    "overrides",
+    "graphviz",
+]
+
+[project.optional-dependencies]
+dev = [
+]
