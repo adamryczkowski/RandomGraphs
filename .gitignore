@@ -19,6 +19,8 @@
 # Scikit-learn cache files
 .sklearn_cache/
 
+# Ignore test pdfs
+tests/*.pdf
 
 # Ignore any files that are generated during the build process
 _build/
