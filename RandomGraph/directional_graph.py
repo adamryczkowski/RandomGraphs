@@ -5,9 +5,31 @@ from collections import defaultdict
 import graphviz
 import numpy as np
 from overrides import overrides
+from typing import Optional, Callable, Protocol
 
 from .dense_graph import DenseGraph
 from .ifaces import IGraph
+
+
+class ProcessVertex(Protocol):
+    def __call__(self, node: int, discovered: dict[int, int], processed: dict[int, int]) -> bool:
+        """
+        :param node: Visited node as int
+        :param discovered: dictionary of all already discovered nodes, with value being the timestamp of the discovery
+        :param processed: dictionary of all preocessed nodes, with value being the timestamp of the processing
+        :return: true if process should be terminated, false otherwise.
+        """
+
+
+class ProcessEdge(Protocol):
+    def __call__(self, parent: int, child: int, discovered: dict[int, int], processed: dict[int, int]) -> bool:
+        """
+        :param parent: ID of the parent node
+        :param child: ID of the child node
+        :param discovered: dictionary of all already discovered nodes, with value being the timestamp of the discovery
+        :param processed: dictionary of all preocessed nodes, with value being the timestamp of the processing
+        :return: true if process should be terminated, false otherwise.
+        """
 
 
 class DirectionalGraph(IGraph):
@@ -19,26 +41,28 @@ class DirectionalGraph(IGraph):
         lines = s.splitlines()
         n = int(lines[0])
         m = int(lines[1])
-        ans = DirectionalGraph(0)
+        ans = DirectionalGraph()
         for i in range(m):
             i, j = map(int, lines[i + 2].split())
             ans.push_connection(i, j)
         return ans
 
-    def __init__(self, n: int, link_density_factor: float = 0.5):
-        self.graph = defaultdict(set)
-        self.reverse_graph = defaultdict(set)
-        self._random_directed_graph(n, link_density_factor)
+    @staticmethod
+    def CreateRandom(N: int, link_density_factor: float = 0.5):
+        ans = DirectionalGraph()
 
-    def _random_directed_graph(self, N: int, link_density_factor: float):
         if N == 0:
-            return
+            return ans
         p = min(1., link_density_factor / 2)
         p = [p, 1 - p]
         for i in range(N):
             for j in range(N):
                 if i != j and np.random.choice([True, False], p=p):
-                    self.push_connection(i, j)
+                    ans.push_connection(i, j)
+
+    def __init__(self):
+        self.graph = defaultdict(set)
+        self.reverse_graph = defaultdict(set)
 
     @overrides
     def __len__(self):
@@ -47,6 +71,9 @@ class DirectionalGraph(IGraph):
     @overrides
     def children(self, i: int) -> set[int]:
         return self.graph[i]
+
+    def parents(self, i: int) -> set[int]:
+        return self.reverse_graph[i]
 
     @overrides
     def __str__(self):
@@ -89,6 +116,68 @@ class DirectionalGraph(IGraph):
                 self._dfs(child, visited)
         return visited
 
+    def _dfs2(self, i: int) -> dict[int, int]:
+        visited = {}
+        self.dfs(start=i, discovered=visited)
+        return visited
+
+    def dfs(self, start: int, use_reversed_graph: bool = False,
+            discovered: dict[int, int] = None,
+            processed: dict[int, int] = None,
+            process_vertex_early: ProcessVertex = None,
+            process_edge: ProcessEdge = None,
+            process_vertex_late: ProcessVertex = None) -> None:
+
+        if discovered is None:
+            discovered = {}
+        if processed is None:
+            processed = {}
+
+        parents = {}
+
+        time = 0
+
+        def _dfs(node: int) -> bool:
+            nonlocal time, discovered, processed, parents
+            time += 1
+            discovered[node] = time
+
+            if process_vertex_early:
+                finish = process_vertex_early(node, discovered, processed)
+
+                if finish:
+                    return True
+
+            if use_reversed_graph:
+                children = self.parents(node)
+            else:
+                children = self.children(node)
+
+            for child in children:
+                if child not in discovered:
+                    parents[child] = node
+                    if process_edge:
+                        finish = process_edge(parent=node, child=child, discovered=discovered, processed=processed)
+                        if finish:
+                            return True
+                    finish = _dfs(child)
+                    if finish:
+                        return True
+                else:
+                    if process_edge:
+                        finish = process_edge(parent=node, child=child, discovered=discovered, processed=processed)
+                        if finish:
+                            return True
+            if process_vertex_late:
+                finish = process_vertex_late(node, discovered, processed)
+                if finish:
+                    return True
+            time += 1
+            processed[node] = time
+            return False
+
+        _dfs(start)
+
     def _dfs_reversed(self, i: int, visited: set = None) -> set[int]:
         if visited is None:
             visited = set()
@@ -96,6 +185,11 @@ class DirectionalGraph(IGraph):
         for j in self.reverse_graph[i]:
             if j not in visited:
                 self._dfs_reversed(j, visited)
+        return visited
+
+    def _dfs_reversed2(self, i: int) -> dict[int, int]:
+        visited = {}
+        self.dfs(start=i, discovered=visited, use_reversed_graph=True)
         return visited
 
     def strongly_connected_components(self) -> DenseGraph:
@@ -106,11 +200,9 @@ class DirectionalGraph(IGraph):
             if i in all_visited:
                 continue
 
-            visited1 = set()
-            self._dfs(i, visited1)
+            visited1 = set(self._dfs2(i).keys())
 
-            visited2 = set()
-            self._dfs_reversed(i, visited2)
+            visited2 = set(self._dfs_reversed2(i).keys())
 
             visited2.intersection_update(visited1)
             all_visited.update(visited2)
@@ -179,3 +271,13 @@ class DirectionalGraph(IGraph):
     def add_node(self, i: int):
         self.graph[i] = set()
         self.reverse_graph[i] = set()
+
+    def find_cut_nodes(self) -> set[int]:
+        ans = set()
+        for i in self.get_nodes():
+            if len(self.children(i)) > 1:
+                continue
+            if len(self.reverse_graph[i]) > 1:
+                continue
+            ans.add(i)
+        return ans

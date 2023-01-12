@@ -8,7 +8,7 @@ class AgenciGraph(DirectionalGraph):
     agents: dict[int, int]
 
     @staticmethod
-    def CreateFromString(s: str, shift_by_one:bool = True) -> AgenciGraph:
+    def CreateFromString(s: str, shift_by_one: bool = True) -> AgenciGraph:
         lines = s.splitlines()
         n_nodes = int(lines[0])
         n_agents = int(lines[1])
@@ -19,7 +19,7 @@ class AgenciGraph(DirectionalGraph):
             agent, cost = map(int, lines[i + 2].split())
             agents[agent] = cost
 
-        ans = AgenciGraph(0)
+        ans = AgenciGraph()
 
         n_connections = int(lines[n_agents + 2])
         for i in range(n_connections):
@@ -37,15 +37,25 @@ class AgenciGraph(DirectionalGraph):
 
         return ans
 
-    def __init__(self, N: int, link_density_factor: float = 0.5, agent_ratio: float = 0.7,
-                 agent_dist_param: float = 10):
-        super().__init__(N, link_density_factor)
-        self.agents = {i: 5 * int(np.random.exponential(agent_dist_param)) for i in
-                       np.random.choice(N, size=int(N * agent_ratio), replace=False)}
+    @staticmethod
+    def CreateRandom(N: int, link_density_factor: float = 0.5, agent_ratio: float = 0.7,
+                     agent_dist_param: float = 10):
+        random = DirectionalGraph.CreateRandom(N=N, link_density_factor=link_density_factor)
+        ans = AgenciGraph
+        ans.graph = random.graph
+        ans.reverse_graph = random.reverse_graph
+        agents = {i: 5 * int(np.random.exponential(agent_dist_param)) for i in
+                  np.random.choice(N, size=int(N * agent_ratio), replace=False)}
+        ans.agents = agents
+        return ans
+
+    def __init__(self):
+        super().__init__()
+        self.agents = {}
 
     def add_agent(self, node: int, cost: int):
         self.agents[node] = cost
-        if node not in self.get_nodes:
+        if node not in self.get_nodes():
             self.add_node(node)
 
     def __str__(self):
