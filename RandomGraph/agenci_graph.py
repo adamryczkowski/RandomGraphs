@@ -8,7 +8,7 @@ class AgenciGraph(DirectionalGraph):
     agents: dict[int, int]
 
     @staticmethod
-    def CreateFromString(s: str, shift_by_one:bool = False) -> AgenciGraph:
+    def CreateFromString(s: str, shift_by_one:bool = True) -> AgenciGraph:
         lines = s.splitlines()
         n_nodes = int(lines[0])
         n_agents = int(lines[1])
@@ -45,6 +45,8 @@ class AgenciGraph(DirectionalGraph):
 
     def add_agent(self, node: int, cost: int):
         self.agents[node] = cost
+        if node not in self.get_nodes:
+            self.add_node(node)
 
     def __str__(self):
         ans = f"{len(self.graph)}\n" \
@@ -52,7 +54,11 @@ class AgenciGraph(DirectionalGraph):
         for agent, cost in self.agents.items():
             ans += f"{agent + 1} {cost}\n"
 
-        conn = [f"{i + 1} {j + 1}" for i in range(len(self.graph)) for j in self.graph[i]]
+        conn = []
+        for parent, children in self.graph.items():
+            for child in children:
+                conn.append(f"{parent + 1} {child + 1}")
+
         ans += f"{len(conn)}\n"
         ans += "\n".join(conn)
         return ans
@@ -66,22 +72,24 @@ class AgenciGraph(DirectionalGraph):
             cg = None
 
         flag_cg = False
-        for i in range(len(self)):
+        for node in self.get_nodes():
             flag_cg = False
             if show_stronly_connected:
-                if i in cg.get_nodes():
-                    flag_cg = True
+                if node in cg.get_nodes():
+                    if len(cg.children(node)) > 1:
+                        flag_cg = True
 
-            if i in self.agents:
+            if node in self.agents:
                 if flag_cg:
-                    out.node(str(i), label=f"{i + 1} ({self.agents[i]})", style="filled", color="gray")
+                    out.node(str(node), label=f"{node + 1} ({self.agents[node]})", style="filled", color="gray")
                 else:
-                    out.node(str(i), label=f"{i + 1} ({self.agents[i]})")
+                    out.node(str(node), label=f"{node + 1} ({self.agents[node]})")
             else:
                 if flag_cg:
-                    out.node(str(i), label=f"{i + 1}", style="filled", color="gray")
+                    out.node(str(node), label=f"{node + 1}", style="filled", color="gray")
                 else:
-                    out.node(str(i), label=f"{i + 1}")
+                    out.node(str(node), label=f"{node + 1}")
+
         for node in self.get_nodes():
             for child in self.children(node):
                 if show_stronly_connected and child in cg.children(node):

@@ -4,6 +4,9 @@
 # Jupyter notebooks
 *.ipynb
 
+# pip installation artifacts
+.*.egg-info/
+
 # Cache files
 .cache/
 
@@ -21,6 +24,7 @@
 
 # Ignore test pdfs
 tests/*.pdf
+tests/*.dot
 
 # Ignore any files that are generated during the build process
 _build/

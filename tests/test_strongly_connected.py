@@ -3,7 +3,7 @@ from RandomGraph import DirectionalGraph
 
 
 def test1():
-    graph = DirectionalGraph(10, link_density_factor=0.4)
+    graph = DirectionalGraph(15, link_density_factor=0.4)
 #     graph = DirectionalGraph.CreateFromString("""7
 # 7
 # 0 3
