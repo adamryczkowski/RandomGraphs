@@ -12,9 +12,14 @@ from overrides import overrides
 class UndirectionalGraph(IGraph):
     graph: dict[int, set[int]]
 
-    def __init__(self, n: int, link_density_factor: float = 0.5):
+    @staticmethod
+    def CreateRandom(N: int, link_density_factor: float = 0.5):
+        out = UndirectionalGraph()
+        out._random_directed_graph(N, link_density_factor)
+        return out
+
+    def __init__(self):
         self.graph = defaultdict(set)
-        self._random_directed_graph(n, link_density_factor)
 
     def _random_directed_graph(self, N: int, link_density_factor: float):
         if N == 0:
@@ -78,7 +83,7 @@ class UndirectionalGraph(IGraph):
                     finish = _dfs(child)
                     if finish:
                         return True
-                elif not node in processed and parents[node] != child:
+                elif not child in processed and parents[node] != child:
                     if process_edge:
                         finish = process_edge(parent=node, child=child, discovered=discovered, processed=processed)
                         if finish:
