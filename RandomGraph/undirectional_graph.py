@@ -4,7 +4,7 @@ import graphviz
 import numpy as np
 from collections import defaultdict
 
-from .ifaces import IGraph
+from .ifaces import IGraph, ProcessEdge, ProcessVertex
 
 from overrides import overrides
 
@@ -37,6 +37,61 @@ class UndirectionalGraph(IGraph):
         ans += f"{len(conn)}\n"
         ans += "\n".join(conn)
         return ans
+
+    @overrides
+    def dfs(self, start: int,
+            discovered: dict[int, int] = None,
+            processed: dict[int, int] = None,
+            process_vertex_early: ProcessVertex = None,
+            process_edge: ProcessEdge = None,
+            process_vertex_late: ProcessVertex = None) -> None:
+
+        if discovered is None:
+            discovered = {}
+        if processed is None:
+            processed = {}
+
+        parents = {}
+
+        time = 0
+
+        def _dfs(node: int) -> bool:
+            nonlocal time, discovered, processed, parents
+            time += 1
+            discovered[node] = time
+
+            if process_vertex_early:
+                finish = process_vertex_early(node, discovered, processed)
+
+                if finish:
+                    return True
+
+            children = self.children(node)
+
+            for child in children:
+                if child not in discovered:
+                    parents[child] = node
+                    if process_edge:
+                        finish = process_edge(parent=node, child=child, discovered=discovered, processed=processed)
+                        if finish:
+                            return True
+                    finish = _dfs(child)
+                    if finish:
+                        return True
+                elif not node in processed and parents[node] != child:
+                    if process_edge:
+                        finish = process_edge(parent=node, child=child, discovered=discovered, processed=processed)
+                        if finish:
+                            return True
+            if process_vertex_late:
+                finish = process_vertex_late(node, discovered, processed)
+                if finish:
+                    return True
+            time += 1
+            processed[node] = time
+            return False
+
+        _dfs(start)
 
     @overrides
     def push_connection(self, i: int, j: int):

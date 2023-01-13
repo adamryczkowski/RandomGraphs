@@ -5,31 +5,9 @@ from collections import defaultdict
 import graphviz
 import numpy as np
 from overrides import overrides
-from typing import Optional, Callable, Protocol
 
 from .dense_graph import DenseGraph
-from .ifaces import IGraph
-
-
-class ProcessVertex(Protocol):
-    def __call__(self, node: int, discovered: dict[int, int], processed: dict[int, int]) -> bool:
-        """
-        :param node: Visited node as int
-        :param discovered: dictionary of all already discovered nodes, with value being the timestamp of the discovery
-        :param processed: dictionary of all preocessed nodes, with value being the timestamp of the processing
-        :return: true if process should be terminated, false otherwise.
-        """
-
-
-class ProcessEdge(Protocol):
-    def __call__(self, parent: int, child: int, discovered: dict[int, int], processed: dict[int, int]) -> bool:
-        """
-        :param parent: ID of the parent node
-        :param child: ID of the child node
-        :param discovered: dictionary of all already discovered nodes, with value being the timestamp of the discovery
-        :param processed: dictionary of all preocessed nodes, with value being the timestamp of the processing
-        :return: true if process should be terminated, false otherwise.
-        """
+from .ifaces import IGraph, ProcessVertex, ProcessEdge
 
 
 class DirectionalGraph(IGraph):
@@ -67,6 +45,13 @@ class DirectionalGraph(IGraph):
     @overrides
     def __len__(self):
         return len(self.graph)
+
+    @property
+    def reversed_graph(self) -> DirectionalGraph:
+        ans = DirectionalGraph()
+        ans.graph = self.reverse_graph
+        ans.reverse_graph = self.graph
+        return ans
 
     @overrides
     def children(self, i: int) -> set[int]:
@@ -121,7 +106,8 @@ class DirectionalGraph(IGraph):
         self.dfs(start=i, discovered=visited)
         return visited
 
-    def dfs(self, start: int, use_reversed_graph: bool = False,
+    @overrides
+    def dfs(self, start: int,
             discovered: dict[int, int] = None,
             processed: dict[int, int] = None,
             process_vertex_early: ProcessVertex = None,
@@ -148,10 +134,7 @@ class DirectionalGraph(IGraph):
                 if finish:
                     return True
 
-            if use_reversed_graph:
-                children = self.parents(node)
-            else:
-                children = self.children(node)
+            children = self.children(node)
 
             for child in children:
                 if child not in discovered:
@@ -189,7 +172,8 @@ class DirectionalGraph(IGraph):
 
     def _dfs_reversed2(self, i: int) -> dict[int, int]:
         visited = {}
-        self.dfs(start=i, discovered=visited, use_reversed_graph=True)
+        reversed = self.reversed_graph
+        reversed.dfs(start=i, discovered=visited)
         return visited
 
     def strongly_connected_components(self) -> DenseGraph:
