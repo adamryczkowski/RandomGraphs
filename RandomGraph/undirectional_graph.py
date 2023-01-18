@@ -4,7 +4,7 @@ import graphviz
 import numpy as np
 from collections import defaultdict
 
-from .ifaces import IUndirectionalGraph, ProcessEdge, ProcessVertex, IGraph
+from .ifaces import IUndirectionalGraph, ProcessEdge, ProcessVertex, IGraph, EdgeType
 
 from overrides import overrides
 
@@ -78,6 +78,21 @@ class UndirectionalGraph(IUndirectionalGraph):
 
         time = 0
 
+        def edge_classification(parent: int, child: int) -> EdgeType:
+            if parents[child] == parent:
+                return EdgeType.TREE
+
+            if child in discovered and child not in processed:
+                return EdgeType.BACK
+
+            if child in processed and discovered[parent] < discovered[child]:
+                return EdgeType.FORWARD
+
+            if child in processed and discovered[parent] > discovered[child]:
+                return EdgeType.CROSS
+
+            raise ValueError("Unknown edge type")
+
         def _dfs(node: int) -> bool:
             nonlocal time, discovered, processed, parents
             time += 1
@@ -96,7 +111,8 @@ class UndirectionalGraph(IUndirectionalGraph):
                 if child not in discovered:
                     parents[child] = node
                     if process_edge:
-                        finish = process_edge(parent=node, child=child, edge_type=None)
+                        finish = process_edge(parent=node, child=child,
+                                              edge_type=edge_classification(parent=node, child=child))
                         if finish:
                             return True
                     finish = _dfs(child)
@@ -104,7 +120,8 @@ class UndirectionalGraph(IUndirectionalGraph):
                         return True
                 elif not child in processed and parents[node] != child:
                     if process_edge:
-                        finish = process_edge(parent=node, child=child, edge_type=None)
+                        finish = process_edge(parent=node, child=child,
+                                              edge_type=edge_classification(parent=node, child=child))
                         if finish:
                             return True
             if process_vertex_late:
@@ -173,5 +190,3 @@ class UndirectionalGraph(IUndirectionalGraph):
     @overrides
     def add_node(self, i: int):
         self._graph[i] = set()
-
-
