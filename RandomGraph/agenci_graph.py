@@ -1,6 +1,9 @@
 from __future__ import annotations
-import numpy as np
+
 import graphviz
+import numpy as np
+from overrides import overrides
+
 from .directional_graph import DirectionalGraph
 
 
@@ -42,8 +45,8 @@ class AgenciGraph(DirectionalGraph):
                      agent_dist_param: float = 10):
         random = DirectionalGraph.CreateRandom(N=N, link_density_factor=link_density_factor)
         ans = AgenciGraph
-        ans.graph = random.graph
-        ans.reverse_graph = random.reverse_graph
+        ans.graph = random._graph
+        ans._reverse_graph = random._reverse_graph
         agents = {i: 5 * int(np.random.exponential(agent_dist_param)) for i in
                   np.random.choice(N, size=int(N * agent_ratio), replace=False)}
         ans.agents = agents
@@ -73,7 +76,8 @@ class AgenciGraph(DirectionalGraph):
         ans += "\n".join(conn)
         return ans
 
-    def plot(self, show_stronly_connected: bool = True):
+    @overrides
+    def plot(self, show_stronly_connected: bool = True) -> graphviz.Digraph:
         out = graphviz.Digraph()
 
         if show_stronly_connected:

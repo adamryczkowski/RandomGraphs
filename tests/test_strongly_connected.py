@@ -18,7 +18,7 @@ def test1():
     sgraph1 = graph.strongly_connected_components()
     sgraph2 = graph.strongly_connected_components2()
 
-    g = graph.plot(False)
+    g = graph.plot()
     g.view(filename="sg", quiet_view=True, quiet=True)
 
     g = graph.plot()

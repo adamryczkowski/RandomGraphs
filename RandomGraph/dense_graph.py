@@ -3,7 +3,7 @@ from __future__ import annotations
 import graphviz
 from overrides import overrides
 
-from .ifaces import IGraph
+from .ifaces import IGraph, ProcessVertex, ProcessEdge
 
 
 class DenseGraph(IGraph):
@@ -16,6 +16,12 @@ class DenseGraph(IGraph):
     def __init__(self):
         self._groups = []
         self._group_id = {}
+
+    @overrides
+    def dfs(self, start: int, discovered: dict[int, int] = None, processed: dict[int, int] = None,
+            parents: dict[int, int] = None, process_vertex_early: ProcessVertex = None,
+            process_edge: ProcessEdge = None, process_vertex_late: ProcessVertex = None) -> None:
+        raise NotImplementedError()
 
     @overrides
     def __len__(self):
@@ -31,7 +37,6 @@ class DenseGraph(IGraph):
     @overrides
     def __repr__(self):
         return str(self)
-
 
     @overrides
     def push_connection(self, i: int, j: int):
@@ -88,7 +93,7 @@ class DenseGraph(IGraph):
                 del self._groups[group_id]
 
     @overrides
-    def plot(self):
+    def plot(self) -> graphviz.Digraph:
         out = graphviz.Digraph()
         for i in self.get_nodes():
             out.node(str(i))
@@ -119,7 +124,7 @@ class DenseGraph(IGraph):
         return set(self._group_id.keys())
 
     @overrides
-    def __eq__(self, other:DenseGraph):
+    def __eq__(self, other: DenseGraph):
         for item in self.get_nodes():
             if self.children(item) != other.children(item):
                 return False

@@ -1,29 +1,45 @@
-from abc import abstractmethod
-from typing import Optional, Callable, Protocol
+from abc import abstractmethod, ABC
+from enum import Enum
+from typing import Callable, Protocol
+import graphviz
+
+
+class EdgeType(Enum):
+    TREE = 0
+    BACK = 1
+    FORWARD = 2
+    CROSS = 3
+
+
+def fun(int, str) -> int:
+    pass
+
+
+f: Callable[[int, str], int] = fun
 
 
 class ProcessVertex(Protocol):
-    def __call__(self, node: int, discovered: dict[int, int], processed: dict[int, int]) -> bool:
+    def __call__(self, node: int) -> bool:
         """
         :param node: Visited node as int
-        :param discovered: dictionary of all already discovered nodes, with value being the timestamp of the discovery
-        :param processed: dictionary of all preocessed nodes, with value being the timestamp of the processing
+
+        User is advised to use discovered, processed and parents dictionaries passed to the dfs algorithm.
         :return: true if process should be terminated, false otherwise.
         """
+        pass
 
 
 class ProcessEdge(Protocol):
-    def __call__(self, parent: int, child: int, discovered: dict[int, int], processed: dict[int, int]) -> bool:
+    def __call__(self, parent: int, child: int, edge_type: EdgeType) -> bool:
         """
         :param parent: ID of the parent node
         :param child: ID of the child node
-        :param discovered: dictionary of all already discovered nodes, with value being the timestamp of the discovery
-        :param processed: dictionary of all preocessed nodes, with value being the timestamp of the processing
+        User is advised to use discovered, processed and parents dictionaries passed to the dfs algorithm.
         :return: true if process should be terminated, false otherwise.
         """
 
 
-class IGraph:
+class IGraph(ABC):
 
     @abstractmethod
     def push_connection(self, i: int, j: int):
@@ -42,7 +58,7 @@ class IGraph:
         pass
 
     @abstractmethod
-    def plot(self):
+    def plot(self) -> graphviz.Digraph:
         pass
 
     @abstractmethod
@@ -52,6 +68,10 @@ class IGraph:
     @abstractmethod
     def __len__(self):
         pass
+
+    # @abstractmethod
+    # def bfs(self, start: int, process_vertex: ProcessVertex, process_edge: Optional[ProcessEdge] = None):
+    #     pass
 
     @abstractmethod
     def __str__(self):
@@ -73,7 +93,16 @@ class IGraph:
     def dfs(self, start: int,
             discovered: dict[int, int] = None,
             processed: dict[int, int] = None,
+            parents: dict[int, int] = None,
             process_vertex_early: ProcessVertex = None,
             process_edge: ProcessEdge = None,
             process_vertex_late: ProcessVertex = None) -> None:
         pass
+
+
+class IUndirectionalGraph(IGraph):
+    pass
+
+
+class IDirectionalGraph(IGraph):
+    pass

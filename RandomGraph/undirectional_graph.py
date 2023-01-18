@@ -4,13 +4,13 @@ import graphviz
 import numpy as np
 from collections import defaultdict
 
-from .ifaces import IGraph, ProcessEdge, ProcessVertex
+from .ifaces import IUndirectionalGraph, ProcessEdge, ProcessVertex
 
 from overrides import overrides
 
 
-class UndirectionalGraph(IGraph):
-    graph: dict[int, set[int]]
+class UndirectionalGraph(IUndirectionalGraph):
+    _graph: dict[int, set[int]]
 
     @staticmethod
     def CreateRandom(N: int, link_density_factor: float = 0.5):
@@ -19,7 +19,7 @@ class UndirectionalGraph(IGraph):
         return out
 
     def __init__(self):
-        self.graph = defaultdict(set)
+        self._graph = defaultdict(set)
 
     def _random_directed_graph(self, N: int, link_density_factor: float):
         if N == 0:
@@ -33,30 +33,29 @@ class UndirectionalGraph(IGraph):
 
     @overrides
     def __len__(self):
-        return len(self.graph)
+        return len(self._graph)
 
     @overrides
     def __str__(self):
-        ans = f"{len(self.graph)}\n"
-        conn = [f"{i} {j}" for i in range(len(self.graph)) for j in self.graph[i]]
+        ans = f"{len(self._graph)}\n"
+        conn = [f"{i} {j}" for i in range(len(self._graph)) for j in self._graph[i]]
         ans += f"{len(conn)}\n"
         ans += "\n".join(conn)
         return ans
 
     @overrides
-    def dfs(self, start: int,
-            discovered: dict[int, int] = None,
+    def dfs(self, start: int, discovered: dict[int, int] = None,
             processed: dict[int, int] = None,
-            process_vertex_early: ProcessVertex = None,
-            process_edge: ProcessEdge = None,
+            parents: dict[int, int] = None,
+            process_vertex_early: ProcessVertex = None, process_edge: ProcessEdge = None,
             process_vertex_late: ProcessVertex = None) -> None:
 
         if discovered is None:
             discovered = {}
         if processed is None:
             processed = {}
-
-        parents = {}
+        if parents is None:
+            parents = {}
 
         time = 0
 
@@ -66,18 +65,19 @@ class UndirectionalGraph(IGraph):
             discovered[node] = time
 
             if process_vertex_early:
-                finish = process_vertex_early(node, discovered, processed)
+                finish = process_vertex_early(node)
 
                 if finish:
                     return True
 
-            children = self.children(node)
+            children = list(self.children(node))
+            children.sort()
 
             for child in children:
                 if child not in discovered:
                     parents[child] = node
                     if process_edge:
-                        finish = process_edge(parent=node, child=child, discovered=discovered, processed=processed)
+                        finish = process_edge(parent=node, child=child, edge_type=None)
                         if finish:
                             return True
                     finish = _dfs(child)
@@ -85,11 +85,11 @@ class UndirectionalGraph(IGraph):
                         return True
                 elif not child in processed and parents[node] != child:
                     if process_edge:
-                        finish = process_edge(parent=node, child=child, discovered=discovered, processed=processed)
+                        finish = process_edge(parent=node, child=child, edge_type=None)
                         if finish:
                             return True
             if process_vertex_late:
-                finish = process_vertex_late(node, discovered, processed)
+                finish = process_vertex_late(node)
                 if finish:
                     return True
             time += 1
@@ -100,31 +100,31 @@ class UndirectionalGraph(IGraph):
 
     @overrides
     def push_connection(self, i: int, j: int):
-        self.graph[i].add(j)
-        self.graph[j].add(i)
+        self._graph[i].add(j)
+        self._graph[j].add(i)
 
     @overrides
-    def plot(self):
+    def plot(self) -> graphviz.Digraph:
         out = graphviz.Digraph()
         for i in range(len(self)):
             out.node(str(i))
-        for i in range(len(self.graph)):
-            for j in self.graph[i]:
+        for i in range(len(self._graph)):
+            for j in self._graph[i]:
                 if i < j:
                     out.edge(str(i), str(j), arrowhead="none")
         return out
 
     @overrides
     def __contains__(self, i: int):
-        return i in self.graph
+        return i in self._graph
 
     @overrides
     def children(self, i: int) -> set[int]:
-        return self.graph[i]
+        return self._graph[i]
 
     @overrides
     def get_nodes(self) -> set[int]:
-        return set(self.graph.keys())
+        return set(self._graph.keys())
 
     @overrides
     def remove_unconnected_nodes(self):
@@ -137,18 +137,18 @@ class UndirectionalGraph(IGraph):
     @overrides
     def remove_node(self, i: int):
         for j in self.children(i):
-            self.graph[j].remove(i)
-        del self.graph[i]
+            self._graph[j].remove(i)
+        del self._graph[i]
 
     @overrides
     def remove_connection(self, i: int, j: int):
-        self.graph[i].remove(j)
-        self.graph[j].remove(i)
+        self._graph[i].remove(j)
+        self._graph[j].remove(i)
 
     @overrides
     def __eq__(self, other: UndirectionalGraph) -> bool:
-        return self.graph == other.graph
+        return self._graph == other._graph
 
     @overrides
     def add_node(self, i: int):
-        self.graph[i] = set()
+        self._graph[i] = set()

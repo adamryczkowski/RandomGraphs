@@ -24,7 +24,7 @@ class DirectionalTaggedGraph(DirectionalGraph):
         else:
             return self.tags.get((j, i), None)
 
-    def plot(self):
+    def plot(self, **kwargs):
         out = graphviz.Digraph()
         for node in range(len(self)):
             out.node(str(node))

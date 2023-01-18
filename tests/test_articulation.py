@@ -1,4 +1,6 @@
-from RandomGraph import make_dfs_tree, UndirectionalGraph
+from RandomGraph import make_dfs_tree, UndirectionalGraph, find_articulation_points
+
+from plotly import graph_objects as go
 
 
 def RandomGraph()->UndirectionalGraph:
@@ -14,6 +16,9 @@ def test():
     d = tree.plot()
     d.view(filename="tree.dot", quiet_view=True, quiet=True)
     print(tree)
+
+    # sets = find_articulation_points(graph)
+    # print(sets)
 
 
 if __name__ == '__main__':

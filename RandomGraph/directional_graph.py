@@ -7,12 +7,12 @@ import numpy as np
 from overrides import overrides
 
 from .dense_graph import DenseGraph
-from .ifaces import IGraph, ProcessVertex, ProcessEdge
+from .ifaces import IDirectionalGraph, ProcessVertex, ProcessEdge
 
 
-class DirectionalGraph(IGraph):
+class DirectionalGraph(IDirectionalGraph):
     graph: dict[int, set[int]]
-    reverse_graph: dict[int, set[int]]
+    _reverse_graph: dict[int, set[int]]
 
     @staticmethod
     def CreateFromString(s: str) -> DirectionalGraph:
@@ -42,17 +42,17 @@ class DirectionalGraph(IGraph):
 
     def __init__(self):
         self.graph = defaultdict(set)
-        self.reverse_graph = defaultdict(set)
+        self._reverse_graph = defaultdict(set)
 
     @overrides
     def __len__(self):
-        return len(self.graph)
+        return len(set(self.graph.keys()).union(self._reverse_graph.keys()))
 
     @property
     def reversed_graph(self) -> DirectionalGraph:
         ans = DirectionalGraph()
-        ans.graph = self.reverse_graph
-        ans.reverse_graph = self.graph
+        ans.graph = self._reverse_graph
+        ans._reverse_graph = self.graph
         return ans
 
     @overrides
@@ -60,11 +60,11 @@ class DirectionalGraph(IGraph):
         return self.graph[i]
 
     def parents(self, i: int) -> set[int]:
-        return self.reverse_graph[i]
+        return self._reverse_graph[i]
 
     @overrides
     def __str__(self):
-        ans = f"{len(self.graph)}\n"
+        ans = f"{len(set(self.graph.keys()).union(self._reverse_graph.keys()))}\n"
         conn = [f"{i} {j}" for i in range(len(self.graph)) for j in self.graph[i]]
         ans += f"{len(conn)}\n"
         ans += "\n".join(conn)
@@ -75,13 +75,14 @@ class DirectionalGraph(IGraph):
 
     def push_connection(self, i: int, j: int):
         self.graph[i].add(j)
-        self.reverse_graph[j].add(i)
+        self._reverse_graph[j].add(i)
 
-    def plot(self, show_stronly_connected: bool = True):
+    @overrides
+    def plot(self, show_stronly_connected: bool = True) -> graphviz.Digraph:
         out = graphviz.Digraph()
 
         if show_stronly_connected:
-            cg = self.strongly_connected_components()
+            cg = self.strongly_connected_components2()
         else:
             cg = None
         flag_cg = False
@@ -113,7 +114,7 @@ class DirectionalGraph(IGraph):
 
     @overrides
     def get_nodes(self) -> set[int]:
-        return set(self.graph.keys()).union(set(self.reverse_graph.keys()))
+        return set(self.graph.keys()).union(set(self._reverse_graph.keys()))
 
     def _dfs(self, i: int, visited: set = None) -> set[int]:
         if visited is None:
@@ -130,11 +131,10 @@ class DirectionalGraph(IGraph):
         return visited
 
     @overrides
-    def dfs(self, start: int,
-            discovered: dict[int, int] = None,
+    def dfs(self, start: int, discovered: dict[int, int] = None,
             processed: dict[int, int] = None,
-            process_vertex_early: ProcessVertex = None,
-            process_edge: ProcessEdge = None,
+            parents: dict[int, int] = None,
+            process_vertex_early: ProcessVertex = None, process_edge: ProcessEdge = None,
             process_vertex_late: ProcessVertex = None) -> None:
 
         if discovered is None:
@@ -152,18 +152,19 @@ class DirectionalGraph(IGraph):
             discovered[node] = time
 
             if process_vertex_early:
-                finish = process_vertex_early(node, discovered, processed)
+                finish = process_vertex_early(node)
 
                 if finish:
                     return True
 
-            children = self.children(node)
+            children = list(self.children(node))
+            children.sort()
 
             for child in children:
                 if child not in discovered:
                     parents[child] = node
                     if process_edge:
-                        finish = process_edge(parent=node, child=child, discovered=discovered, processed=processed)
+                        finish = process_edge(parent=node, child=child)
                         if finish:
                             return True
                     finish = _dfs(child)
@@ -171,11 +172,11 @@ class DirectionalGraph(IGraph):
                         return True
                 else:
                     if process_edge:
-                        finish = process_edge(parent=node, child=child, discovered=discovered, processed=processed)
+                        finish = process_edge(parent=node, child=child)
                         if finish:
                             return True
             if process_vertex_late:
-                finish = process_vertex_late(node, discovered, processed)
+                finish = process_vertex_late(node)
                 if finish:
                     return True
             time += 1
@@ -188,7 +189,7 @@ class DirectionalGraph(IGraph):
         if visited is None:
             visited = set()
         visited.add(i)
-        for j in self.reverse_graph[i]:
+        for j in self._reverse_graph[i]:
             if j not in visited:
                 self._dfs_reversed(j, visited)
         return visited
@@ -246,7 +247,7 @@ class DirectionalGraph(IGraph):
             if i in ans:
                 return
             ans.push_connection(i, root)
-            for j in self.reverse_graph[i]:
+            for j in self._reverse_graph[i]:
                 assign(j, root, ans)
 
         for i in reversed(visited_stack):
@@ -257,16 +258,16 @@ class DirectionalGraph(IGraph):
     @overrides
     def remove_node(self, i: int):
         for j in self.graph[i]:
-            self.reverse_graph[j].remove(i)
-        for j in self.reverse_graph[i]:
+            self._reverse_graph[j].remove(i)
+        for j in self._reverse_graph[i]:
             self.graph[j].remove(i)
         del self.graph[i]
-        del self.reverse_graph[i]
+        del self._reverse_graph[i]
 
     @overrides
     def remove_connection(self, i: int, j: int):
         self.graph[i].remove(j)
-        self.reverse_graph[j].remove(i)
+        self._reverse_graph[j].remove(i)
 
     @overrides
     def remove_unconnected_nodes(self):
@@ -277,14 +278,14 @@ class DirectionalGraph(IGraph):
     @overrides
     def add_node(self, i: int):
         self.graph[i] = set()
-        self.reverse_graph[i] = set()
+        self._reverse_graph[i] = set()
 
     def find_cut_nodes(self) -> set[int]:
         ans = set()
         for i in self.get_nodes():
             if len(self.children(i)) > 1:
                 continue
-            if len(self.reverse_graph[i]) > 1:
+            if len(self._reverse_graph[i]) > 1:
                 continue
             ans.add(i)
         return ans
