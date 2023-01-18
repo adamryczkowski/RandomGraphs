@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 from abc import abstractmethod, ABC
 from enum import Enum
 from typing import Callable, Protocol
+
 import graphviz
 
 
@@ -97,6 +100,10 @@ class IGraph(ABC):
             process_vertex_early: ProcessVertex = None,
             process_edge: ProcessEdge = None,
             process_vertex_late: ProcessVertex = None) -> None:
+        pass
+
+    @abstractmethod
+    def __eq__(self, other: IGraph):
         pass
 
 

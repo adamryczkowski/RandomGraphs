@@ -6,6 +6,7 @@ import graphviz
 import numpy as np
 from overrides import overrides
 
+from . import IGraph
 from .dense_graph import DenseGraph
 from .ifaces import IDirectionalGraph, ProcessVertex, ProcessEdge
 
@@ -28,6 +29,12 @@ class DirectionalGraph(IDirectionalGraph):
             i, j = [int(el) for el in lines[i + n + 2].split()]
             ans.push_connection(i, j)
         return ans
+
+    @overrides
+    def __eq__(self, other: IGraph):
+        if not isinstance(other, DirectionalGraph):
+            return False
+        return self._graph == other._graph
 
     @staticmethod
     def CreateRandom(N: int, link_density_factor: float = 0.5):

@@ -1,6 +1,7 @@
 import graphviz
 from .directional_graph import DirectionalGraph
 from typing import Any, Optional
+from .ifaces import IGraph
 
 
 class DirectionalTaggedGraph(DirectionalGraph):
@@ -38,3 +39,11 @@ class DirectionalTaggedGraph(DirectionalGraph):
                     out.edge(str(node), str(child), arrowhead="normal", arrowtail="none",
                              style=self.get_tag(node, child))
         return out
+
+    def __eq__(self, other: IGraph):
+        if not isinstance(other, DirectionalTaggedGraph):
+            return False
+        if self._graph != other._graph:
+            return False
+        if self.tags != other.tags:
+            return False

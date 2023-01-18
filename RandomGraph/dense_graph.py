@@ -124,7 +124,9 @@ class DenseGraph(IGraph):
         return set(self._group_id.keys())
 
     @overrides
-    def __eq__(self, other: DenseGraph):
+    def __eq__(self, other: IGraph):
+        if not isinstance(other, DenseGraph):
+            return False
         for item in self.get_nodes():
             if self.children(item) != other.children(item):
                 return False

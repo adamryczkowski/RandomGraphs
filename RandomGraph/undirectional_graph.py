@@ -4,7 +4,7 @@ import graphviz
 import numpy as np
 from collections import defaultdict
 
-from .ifaces import IUndirectionalGraph, ProcessEdge, ProcessVertex
+from .ifaces import IUndirectionalGraph, ProcessEdge, ProcessVertex, IGraph
 
 from overrides import overrides
 
@@ -165,9 +165,13 @@ class UndirectionalGraph(IUndirectionalGraph):
         self._graph[j].remove(i)
 
     @overrides
-    def __eq__(self, other: UndirectionalGraph) -> bool:
+    def __eq__(self, other: IGraph) -> bool:
+        if not isinstance(other, UndirectionalGraph):
+            return False
         return self._graph == other._graph
 
     @overrides
     def add_node(self, i: int):
         self._graph[i] = set()
+
+
