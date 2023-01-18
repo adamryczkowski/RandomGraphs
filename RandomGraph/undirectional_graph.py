@@ -58,7 +58,7 @@ class UndirectionalGraph(IUndirectionalGraph):
         ans += "\n".join(nodes)
 
         conn = [f"{i} {j}" for i in range(len(self._graph)) for j in self._graph[i]]
-        ans += f"{len(conn)}\n"
+        ans += f"\n{len(conn)}\n"
         ans += "\n".join(conn)
         return ans
 

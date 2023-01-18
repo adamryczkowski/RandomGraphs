@@ -22,6 +22,29 @@ def make_dfs_tree(graph: IGraph, start: int, reachable_ancestor_edge_style: str 
     return out
 
 
+def make_dfs_trees(graph: IGraph, reachable_ancestor_edge_style: str = "dotted") -> DirectionalTaggedGraph:
+    out = DirectionalTaggedGraph()
+    discovered: dict[int, int] = {}
+
+    def add_node(node: int) -> bool:
+        out.add_node(node)
+        return False
+
+    def add_vertex(parent: int, child: int, edge_type: EdgeType) -> bool:
+        nonlocal discovered
+        if child in discovered:
+            out.push_connection(parent, child, tag=reachable_ancestor_edge_style)
+        else:
+            out.push_connection(parent, child, tag="solid")
+        return False
+
+    for node in graph.get_nodes():
+        if node not in discovered:
+            graph.dfs(node, discovered=discovered, process_vertex_early=add_node, process_edge=add_vertex)
+
+    return out
+
+
 def find_articulation_points(graph: IUndirectionalGraph) -> set[int]:
     """Given a undirectional graph returns a set of articulation points, i.e. nodes that if removed would split the graph into two or more components."""
     earliest_back_parent = {}
