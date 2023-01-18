@@ -13,10 +13,26 @@ class UndirectionalGraph(IUndirectionalGraph):
     _graph: dict[int, set[int]]
 
     @staticmethod
-    def CreateRandom(N: int, link_density_factor: float = 0.5):
+    def CreateRandom(N: int, link_density_factor: float = 0.5) -> UndirectionalGraph:
         out = UndirectionalGraph()
         out._random_directed_graph(N, link_density_factor)
         return out
+
+    @staticmethod
+    def CreateFromString(s: str) -> UndirectionalGraph:
+        lines = s.splitlines()
+        n = int(lines[0])
+        ans = UndirectionalGraph()
+        for i in range(n):
+            i = int(lines[i + 1])
+            ans._graph[i] = set()
+
+        m = int(lines[n + 1])
+        for i in range(m):
+            i, j = [int(el) for el in lines[i + n + 2].split()]
+            ans.push_connection(i, j)
+
+        return ans
 
     def __init__(self):
         self._graph = defaultdict(set)
@@ -37,7 +53,10 @@ class UndirectionalGraph(IUndirectionalGraph):
 
     @overrides
     def __str__(self):
-        ans = f"{len(self._graph)}\n"
+        nodes = [f"{i}" for i in self._graph.keys()]
+        ans = f"{len(nodes)}\n"
+        ans += "\n".join(nodes)
+
         conn = [f"{i} {j}" for i in range(len(self._graph)) for j in self._graph[i]]
         ans += f"{len(conn)}\n"
         ans += "\n".join(conn)

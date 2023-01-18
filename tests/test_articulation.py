@@ -17,8 +17,8 @@ def test():
     d.view(filename="tree.dot", quiet_view=True, quiet=True)
     print(tree)
 
-    # sets = find_articulation_points(graph)
-    # print(sets)
+    sets = find_articulation_points(graph)
+    print(sets)
 
 
 if __name__ == '__main__':

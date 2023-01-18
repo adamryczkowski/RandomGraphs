@@ -45,7 +45,7 @@ class AgenciGraph(DirectionalGraph):
                      agent_dist_param: float = 10):
         random = DirectionalGraph.CreateRandom(N=N, link_density_factor=link_density_factor)
         ans = AgenciGraph
-        ans.graph = random._graph
+        ans._graph = random._graph
         ans._reverse_graph = random._reverse_graph
         agents = {i: 5 * int(np.random.exponential(agent_dist_param)) for i in
                   np.random.choice(N, size=int(N * agent_ratio), replace=False)}
@@ -62,13 +62,13 @@ class AgenciGraph(DirectionalGraph):
             self.add_node(node)
 
     def __str__(self):
-        ans = f"{len(self.graph)}\n" \
+        ans = f"{len(self._graph)}\n" \
               f"{len(self.agents)}\n"
         for agent, cost in self.agents.items():
             ans += f"{agent + 1} {cost}\n"
 
         conn = []
-        for parent, children in self.graph.items():
+        for parent, children in self._graph.items():
             for child in children:
                 conn.append(f"{parent + 1} {child + 1}")
 
