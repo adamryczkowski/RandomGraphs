@@ -38,6 +38,8 @@ class DirectionalGraph(IGraph):
                 if i != j and np.random.choice([True, False], p=p):
                     ans.push_connection(i, j)
 
+        return ans
+
     def __init__(self):
         self.graph = defaultdict(set)
         self.reverse_graph = defaultdict(set)
@@ -75,13 +77,34 @@ class DirectionalGraph(IGraph):
         self.graph[i].add(j)
         self.reverse_graph[j].add(i)
 
-    def plot(self):
+    def plot(self, show_stronly_connected: bool = True):
         out = graphviz.Digraph()
+
+        if show_stronly_connected:
+            cg = self.strongly_connected_components()
+        else:
+            cg = None
+        flag_cg = False
+
         for node in range(len(self)):
-            out.node(str(node))
+            flag_cg = False
+            if show_stronly_connected:
+                if node in cg.get_nodes():
+                    if len(cg.children(node)) > 1:
+                        flag_cg = True
+            if flag_cg:
+                out.node(str(node), label=f"{node}", style="filled", color="gray")
+            else:
+                out.node(str(node), label=f"{node}")
+
         for node in self.get_nodes():
             for child in self.children(node):
-                if node in self.children(child):
+                if show_stronly_connected and child in cg.children(node):
+                    if node in self.children(child):
+                        if node < child:
+                            continue
+                    out.edge(str(node), str(child), dir="both", arrowhead="none", arrowtail="none")
+                elif node in self.children(child):
                     if node < child:
                         out.edge(str(node), str(child), dir="both", arrowhead="normal", arrowtail="normal")
                 else:

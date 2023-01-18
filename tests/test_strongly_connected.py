@@ -3,7 +3,7 @@ from RandomGraph import DirectionalGraph
 
 
 def test1():
-    graph = DirectionalGraph(15, link_density_factor=0.4)
+    graph = DirectionalGraph.CreateRandom(20, link_density_factor=0.2)
 #     graph = DirectionalGraph.CreateFromString("""7
 # 7
 # 0 3
@@ -18,8 +18,12 @@ def test1():
     sgraph1 = graph.strongly_connected_components()
     sgraph2 = graph.strongly_connected_components2()
 
-    g = graph.plot()
+    g = graph.plot(False)
     g.view(filename="sg", quiet_view=True, quiet=True)
+
+    g = graph.plot()
+    g.view(filename="sgs", quiet_view=True, quiet=True)
+
 
     g1 = sgraph1.plot()
     g1.view(filename="sg1", quiet_view=True, quiet=True)
