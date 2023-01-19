@@ -65,32 +65,41 @@ def find_articulation_points(graph: IUndirectionalGraph) -> set[int]:
             tree_out_degree[parent] = tree_out_degree.get(parent, 0) + 1
 
         if edge_type == EdgeType.BACK and parents[parent] != child:
+            # edge_type == EdgeType.BACK means that the child was already discovered, so it is actually a grand-grand-grand-...-parent, not a child
+            # parents[parent] != child is to prevent handling multiple edges between the same two nodes
             if discovered[child] < discovered[reachable_ancestor[parent]]:
+                # If the grand-grand-...-parent was visited earlier than the current reachable ancestor of the parent, then we must update the reachable ancestor,
+                # so it points to the oldest node that can be reached from the parent
                 reachable_ancestor[parent] = child
 
         return False
 
     def process_vertex_late(node: int) -> bool:
-        if node not in parents:
+        if node not in parents: # test if node is root
             if tree_out_degree[node] > 1:
-                out.add(node)
+                out.add(node) # Root is an articulation point if it has more than one child
             return False
 
-        is_root = parents[node] not in parents
+        is_parent_root = parents[node] not in parents # Test if node's parent is root
 
-        if not is_root:
-            if reachable_ancestor[node] == parents[node]:
-                out.add(parents[node])
+        if not is_parent_root:
+            if reachable_ancestor[node] == parents[node]: # Does the node have another (necessarily direct) connection to the parent?
+                out.add(parents[node]) # node's parent is an articulation point if reachable ancestor of node is node's parent
+                # (if it was something different, then it could only be a back edge, and node's parent would be reachable from that node)
                 return False
 
-            if reachable_ancestor[node] == node:
-                out.add(parents[node])
+            if reachable_ancestor[node] == node: # Is node a bridge (i.e. no back edges to any of its ancestors)?
+                out.add(parents[node]) # node's parent is an articulation point if reachable ancestor of node is node itself
 
-                if tree_out_degree[node] > 0:
-                    out.add(node)
+                if tree_out_degree[node] > 0: # Is node a leaf?
+                    out.add(node) # node is an articulation point if it is not a leaf and has no back edges
                     return False
 
         if discovered[reachable_ancestor[node]] < discovered[reachable_ancestor[parents[node]]]:
+            # Under the normal dfs traversal discovered[reachable_ancestor[node]] > discovered[reachable_ancestor[parents[node]]].
+            # However, the reachable ancestor of the parent is older than the reachable ancestor of the node (because of the back edge),
+            # so we must update the reachable ancestor of the parent.
+            # This way we propagate the oldest reachable ancestor all the way up the tree.
             reachable_ancestor[parents[node]] = reachable_ancestor[node]
         return False
 
