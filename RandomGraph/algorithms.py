@@ -48,7 +48,7 @@ def make_dfs_trees(graph: IGraph, reachable_ancestor_edge_style: str = "dotted")
 
 def find_articulation_points(graph: IUndirectionalGraph) -> set[int]:
     """Given an undirectional graph returns a set of articulation points, i.e. nodes that if removed would split the graph into two or more components.
-    Implemented using Tarjan's algorithm, from Skiena Stefen, The Algorithm Design Manual, 2nd edition
+    Implemented using Tarjan's algorithm, from Stefen Skiena, The Algorithm Design Manual, 2nd edition
     """
     reachable_ancestor = {}
     tree_out_degree: dict[int, int] = defaultdict(int)

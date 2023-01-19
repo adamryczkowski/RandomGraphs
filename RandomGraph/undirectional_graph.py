@@ -55,11 +55,14 @@ class UndirectionalGraph(IUndirectionalGraph):
     def __str__(self):
         nodes = [f"{i}" for i in self._graph.keys()]
         ans = f"{len(nodes)}\n"
-        ans += "\n".join(nodes)
+        if len(nodes) > 0:
+            ans += "\n".join(nodes)
+            ans += "\n"
 
-        conn = [f"{i} {j}" for i in range(len(self._graph)) for j in self._graph[i]]
-        ans += f"\n{len(conn)}\n"
-        ans += "\n".join(conn)
+        conn = [f"{i} {j}" for i in self._graph.keys() for j in self._graph[i] if i < j]
+        ans += f"{len(conn)}\n"
+        if len(conn) > 0:
+            ans += "\n".join(conn)
         return ans
 
     @overrides
@@ -67,7 +70,7 @@ class UndirectionalGraph(IUndirectionalGraph):
             processed: dict[int, int] = None,
             parents: dict[int, int] = None,
             process_vertex_early: ProcessVertex = None, process_edge: ProcessEdge = None,
-            process_vertex_late: ProcessVertex = None) -> None:
+            process_vertex_late: ProcessVertex = None) -> int:
 
         if discovered is None:
             discovered = {}
@@ -79,7 +82,7 @@ class UndirectionalGraph(IUndirectionalGraph):
         time = 0
 
         def edge_classification(parent: int, child: int) -> EdgeType:
-            if parents[child] == parent:
+            if parents.get(child) == parent:
                 return EdgeType.TREE
 
             if child in discovered and child not in processed:
@@ -104,7 +107,7 @@ class UndirectionalGraph(IUndirectionalGraph):
                 if finish:
                     return True
 
-            children = list(self.children(node))
+            children = list(self.get_children(node))
             children.sort()
 
             for child in children:
@@ -118,7 +121,7 @@ class UndirectionalGraph(IUndirectionalGraph):
                     finish = _dfs(child)
                     if finish:
                         return True
-                elif not child in processed and parents[node] != child:
+                elif not child in processed and parents.get(node) != child:
                     if process_edge:
                         finish = process_edge(parent=node, child=child,
                                               edge_type=edge_classification(parent=node, child=child))
@@ -133,6 +136,7 @@ class UndirectionalGraph(IUndirectionalGraph):
             return False
 
         _dfs(start)
+        return time // 2
 
     @overrides
     def push_connection(self, i: int, j: int):
@@ -142,9 +146,9 @@ class UndirectionalGraph(IUndirectionalGraph):
     @overrides
     def plot(self) -> graphviz.Digraph:
         out = graphviz.Digraph()
-        for i in range(len(self)):
+        for i in self.get_nodes():
             out.node(str(i))
-        for i in range(len(self._graph)):
+        for i in self.get_nodes():
             for j in self._graph[i]:
                 if i < j:
                     out.edge(str(i), str(j), arrowhead="none")
@@ -155,7 +159,7 @@ class UndirectionalGraph(IUndirectionalGraph):
         return i in self._graph
 
     @overrides
-    def children(self, i: int) -> set[int]:
+    def get_children(self, i: int) -> set[int]:
         return self._graph[i]
 
     @overrides
@@ -166,13 +170,13 @@ class UndirectionalGraph(IUndirectionalGraph):
     def remove_unconnected_nodes(self):
         nodes = self.get_nodes()
         for node in nodes:
-            if len(self.children(node)) == 0:
+            if len(self.get_children(node)) == 0:
                 self.remove_node(node)
         return self
 
     @overrides
     def remove_node(self, i: int):
-        for j in self.children(i):
+        for j in self.get_children(i):
             self._graph[j].remove(i)
         del self._graph[i]
 

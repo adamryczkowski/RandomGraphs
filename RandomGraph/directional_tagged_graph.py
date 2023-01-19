@@ -27,11 +27,11 @@ class DirectionalTaggedGraph(DirectionalGraph):
 
     def plot(self, **kwargs):
         out = graphviz.Digraph()
-        for node in range(len(self)):
+        for node in self.get_nodes():
             out.node(str(node))
         for node in self.get_nodes():
-            for child in self.children(node):
-                if node in self.children(child):
+            for child in self.get_children(node):
+                if node in self.get_children(child):
                     if node < child:
                         out.edge(str(node), str(child), dir="both", arrowhead="normal", arrowtail="normal",
                                  style=self.get_tag(node, child))

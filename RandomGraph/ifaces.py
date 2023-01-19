@@ -81,7 +81,7 @@ class IGraph(ABC):
         pass
 
     @abstractmethod
-    def children(self, i: int) -> set[int]:
+    def get_children(self, i: int) -> set[int]:
         pass
 
     @abstractmethod
@@ -99,7 +99,7 @@ class IGraph(ABC):
             parents: dict[int, int] = None,
             process_vertex_early: ProcessVertex = None,
             process_edge: ProcessEdge = None,
-            process_vertex_late: ProcessVertex = None) -> None:
+            process_vertex_late: ProcessVertex = None) -> int:
         pass
 
     @abstractmethod

@@ -66,7 +66,7 @@ class DirectionalGraph(IDirectionalGraph):
         return ans
 
     @overrides
-    def children(self, i: int) -> set[int]:
+    def get_children(self, i: int) -> set[int]:
         return self._graph[i]
 
     def parents(self, i: int) -> set[int]:
@@ -109,7 +109,7 @@ class DirectionalGraph(IDirectionalGraph):
             flag_cg = False
             if show_stronly_connected:
                 if node in cg.get_nodes():
-                    if len(cg.children(node)) > 1:
+                    if len(cg.get_children(node)) > 1:
                         flag_cg = True
             if flag_cg:
                 out.node(str(node), label=f"{node}", style="filled", color="gray")
@@ -117,13 +117,13 @@ class DirectionalGraph(IDirectionalGraph):
                 out.node(str(node), label=f"{node}")
 
         for node in self.get_nodes():
-            for child in self.children(node):
-                if show_stronly_connected and child in cg.children(node):
-                    if node in self.children(child):
+            for child in self.get_children(node):
+                if show_stronly_connected and child in cg.get_children(node):
+                    if node in self.get_children(child):
                         if node < child:
                             continue
                     out.edge(str(node), str(child), dir="both", arrowhead="none", arrowtail="none")
-                elif node in self.children(child):
+                elif node in self.get_children(child):
                     if node < child:
                         out.edge(str(node), str(child), dir="both", arrowhead="normal", arrowtail="normal")
                 else:
@@ -138,7 +138,7 @@ class DirectionalGraph(IDirectionalGraph):
         if visited is None:
             visited = set()
         visited.add(i)
-        for child in self.children(i):
+        for child in self.get_children(i):
             if child not in visited:
                 self._dfs(child, visited)
         return visited
@@ -175,7 +175,7 @@ class DirectionalGraph(IDirectionalGraph):
                 if finish:
                     return True
 
-            children = list(self.children(node))
+            children = list(self.get_children(node))
             children.sort()
 
             for child in children:
@@ -290,7 +290,7 @@ class DirectionalGraph(IDirectionalGraph):
     @overrides
     def remove_unconnected_nodes(self):
         for i in list(self.get_nodes()):
-            if not self.children(i):
+            if not self.get_children(i):
                 self.remove_node(i)
 
     @overrides
@@ -301,7 +301,7 @@ class DirectionalGraph(IDirectionalGraph):
     def find_cut_nodes(self) -> set[int]:
         ans = set()
         for i in self.get_nodes():
-            if len(self.children(i)) > 1:
+            if len(self.get_children(i)) > 1:
                 continue
             if len(self._reverse_graph[i]) > 1:
                 continue

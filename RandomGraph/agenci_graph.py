@@ -90,7 +90,7 @@ class AgenciGraph(DirectionalGraph):
             flag_cg = False
             if show_stronly_connected:
                 if node in cg.get_nodes():
-                    if len(cg.children(node)) > 1:
+                    if len(cg.get_children(node)) > 1:
                         flag_cg = True
 
             if node in self.agents:
@@ -105,13 +105,13 @@ class AgenciGraph(DirectionalGraph):
                     out.node(str(node), label=f"{node + 1}")
 
         for node in self.get_nodes():
-            for child in self.children(node):
-                if show_stronly_connected and child in cg.children(node):
-                    if node in self.children(child):
+            for child in self.get_children(node):
+                if show_stronly_connected and child in cg.get_children(node):
+                    if node in self.get_children(child):
                         if node < child:
                             continue
                     out.edge(str(node), str(child), dir="both", arrowhead="none", arrowtail="none")
-                elif node in self.children(child):
+                elif node in self.get_children(child):
                     if node < child:
                         out.edge(str(node), str(child), dir="both", arrowhead="normal", arrowtail="normal")
                 else:

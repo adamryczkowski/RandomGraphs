@@ -20,7 +20,7 @@ class DenseGraph(IGraph):
     @overrides
     def dfs(self, start: int, discovered: dict[int, int] = None, processed: dict[int, int] = None,
             parents: dict[int, int] = None, process_vertex_early: ProcessVertex = None,
-            process_edge: ProcessEdge = None, process_vertex_late: ProcessVertex = None) -> None:
+            process_edge: ProcessEdge = None, process_vertex_late: ProcessVertex = None) -> int:
         raise NotImplementedError()
 
     @overrides
@@ -114,7 +114,7 @@ class DenseGraph(IGraph):
         return i in self._group_id
 
     @overrides
-    def children(self, i: int) -> set[int]:
+    def get_children(self, i: int) -> set[int]:
         group_id = self._group_id[i]
         group = self._groups[group_id]
         return group - {i}
@@ -128,6 +128,6 @@ class DenseGraph(IGraph):
         if not isinstance(other, DenseGraph):
             return False
         for item in self.get_nodes():
-            if self.children(item) != other.children(item):
+            if self.get_children(item) != other.get_children(item):
                 return False
         return True
