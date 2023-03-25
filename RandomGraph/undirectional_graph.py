@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Optional
+from typing import Optional, Iterator
 
 import graphviz
 import numpy as np
@@ -18,6 +18,20 @@ class UndirectionalGraph(IUndirectionalGraph):
         out = UndirectionalGraph()
         out._random_directed_graph(N, link_density_factor)
         return out
+
+    @overrides
+    def get_node_weight(self, i: int) -> int:
+        return 1
+
+    @property
+    @overrides
+    def all_node_weights_must_be_one(self) -> bool:
+        return True
+
+    @property
+    @overrides
+    def all_edge_weights_must_be_one(self) -> bool:
+        return True
 
     @staticmethod
     def CreateFromString(s: str) -> UndirectionalGraph:
@@ -200,5 +214,6 @@ class UndirectionalGraph(IUndirectionalGraph):
         return self._graph == other._graph
 
     @overrides
-    def add_node(self, i: int):
+    def add_node(self, i: int, weight: int = 1):
+        assert weight == 1
         self._graph[i] = set()

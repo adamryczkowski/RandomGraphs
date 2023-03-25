@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import abstractmethod, ABC
 from enum import Enum
-from typing import Callable, Protocol, Optional
+from typing import Callable, Protocol, Optional, Iterator
 
 import graphviz
 
@@ -53,6 +53,21 @@ class IGraph(ABC):
         pass
 
     @abstractmethod
+    def get_node_weight(self, i: int) -> int:
+        pass
+
+    @property
+    @abstractmethod
+    def all_node_weights_must_be_one(self) -> bool:
+        pass
+
+
+    @property
+    @abstractmethod
+    def all_edge_weights_must_be_one(self) -> bool:
+        pass
+
+    @abstractmethod
     def remove_node(self, i: int):
         pass
 
@@ -93,7 +108,7 @@ class IGraph(ABC):
         pass
 
     @abstractmethod
-    def add_node(self, i: int):
+    def add_node(self, i: int, weight: int = 1):
         pass
 
     @abstractmethod

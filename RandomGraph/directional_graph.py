@@ -7,15 +7,24 @@ import numpy as np
 from overrides import overrides
 
 from .dense_graph import DenseGraph
-from .ifaces import IDirectionalGraph, ProcessVertex, IGraph
+from .ifaces import IDirectionalGraph, ProcessVertex, IGraph, ProcessEdge
 
 
 class DirectionalGraph(IDirectionalGraph):
-    _graph: dict[int, set[int]]
-    _reverse_graph: dict[int, set[int]]
+    _graph: dict[int, set[int]]  # for each node contains a list of children
+    _reverse_graph: dict[int, set[int]]  # for each node contains a list of parents
+    _node_weights: dict[int, int]  # weight for each node
+    _edge_weights: dict[tuple[int, int], int]
+    _edge_weights_are_symmetrical: bool
 
     @staticmethod
-    def CreateFromString(s: str) -> DirectionalGraph:
+    def CreateFromString(s: str,
+                         no_edge_weights: bool = True, no_node_weights: bool = True,
+                         edge_weights_are_symmetrical: bool = True) -> DirectionalGraph:
+        """ Ignores the weights """
+        assert no_edge_weights
+        assert no_node_weights
+        assert edge_weights_are_symmetrical
         lines = s.splitlines()
         ans = DirectionalGraph()
         n = int(lines[0])
@@ -33,10 +42,14 @@ class DirectionalGraph(IDirectionalGraph):
     def __eq__(self, other: IGraph):
         if not isinstance(other, DirectionalGraph):
             return False
-        return self._graph == other._graph
+        ans1 = self._graph == other._graph
+        ans2 = self._node_weights == other._node_weights
+        ans3 = self._edge_weights == other._edge_weights
+        return ans1 and ans2 and ans3
 
     @staticmethod
-    def CreateRandom(N: int, link_density_factor: float = 0.5):
+    def CreateRandom(N: int, link_density_factor: float = 0.5) -> DirectionalGraph:
+
         ans = DirectionalGraph()
 
         if N == 0:
@@ -50,19 +63,62 @@ class DirectionalGraph(IDirectionalGraph):
 
         return ans
 
-    def __init__(self):
+    def __init__(self, all_node_weights_equal_one: bool = True,
+                 all_edge_weights_equal_one: bool = True, edge_weights_are_symmetrical: bool = True):
         self._graph = defaultdict(set)
         self._reverse_graph = defaultdict(set)
+        if all_node_weights_equal_one:
+            self._node_weights = defaultdict(lambda: 1)
+        else:
+            self._node_weights = {}
+
+        if all_edge_weights_equal_one:
+            self._edge_weights = defaultdict(lambda: 1)
+        else:
+            self._edge_weights = {}
+
+        self._edge_weights_are_symmetrical = edge_weights_are_symmetrical
 
     @overrides
     def __len__(self):
-        return len(set(self._graph.keys()).union(self._reverse_graph.keys()))
+        return len(self._node_weights)
+        # return len(set(self._graph.keys()).union(self._reverse_graph.keys()))
+
+    @property
+    @overrides
+    def all_node_weights_must_be_one(self) -> bool:
+        if isinstance(self._node_weights, defaultdict):
+            return True
+        ans = all(weight == 1 for weight in self._node_weights.values())
+        if ans:
+            self._node_weights = defaultdict(lambda: 1)
+        return ans
+
+    @property
+    @overrides
+    def all_edge_weights_must_be_one(self) -> bool:
+        if isinstance(self._edge_weights, defaultdict):
+            return True
+        ans = all(weight == 1 for weight in self._edge_weights.values())
+        if ans:
+            self._edge_weights = defaultdict(lambda: 1)
+        return ans
 
     @property
     def reversed_graph(self) -> DirectionalGraph:
-        ans = DirectionalGraph()
+        ans = DirectionalGraph(all_node_weights_equal_one=True,
+                               all_edge_weights_equal_one=True,
+                               edge_weights_are_symmetrical=self._edge_weights_are_symmetrical)
         ans._graph = self._reverse_graph
         ans._reverse_graph = self._graph
+        ans._node_weights = self._node_weights
+        if self.all_node_weights_must_be_one:
+            ans._edge_weights = defaultdict(lambda: 1)
+        else:
+            if self.all_edge_weights_must_be_one:
+                ans._edge_weights = defaultdict(lambda: 1)
+            else:
+                ans._edge_weights = {(edge2, edge1) for (edge1, edge2), weight in self._node_weights.items()}
         return ans
 
     @overrides
@@ -75,19 +131,29 @@ class DirectionalGraph(IDirectionalGraph):
     @overrides
     def __str__(self):
         nodes = [f"{i}" for i in self._graph.keys()]
-        ans = f"{len(nodes)}\n"
-        ans += "\n".join(nodes)
+        assert self.all_node_weights_must_be_one
+        if self.all_edge_weights_must_be_one:
+            ans = f"{len(nodes)}\n"
+            ans += "\n".join(nodes)
 
-        conn = [f"{i} {j}" for i in range(len(self._graph)) for j in self._graph[i]]
-        ans += f"\n{len(conn)}\n"
-        ans += "\n".join(conn)
+            conn = [f"{i} {j}" for i in range(len(self._graph)) for j in self._graph[i]]
+            ans += f"\n{len(conn)}\n"
+            ans += "\n".join(conn)
+        else:
+            ans = f"{len(nodes)}\n"
+            ans += "\n".join(nodes)
+
+            conn = [f"{i} {j} {self.get_connection_weight[(i, j)]}" for i in range(len(self._graph)) for j in self._graph[i]]
+            ans += f"\n{len(conn)}\n"
+            ans += "\n".join(conn)
         return ans
 
     def __contains__(self, i: int, j: int):
         return j in self._graph[i]
 
     def push_connection(self, i: int, j: int, tag: str = None, cost: int = 1):
-        assert cost == 1
+        if self.all_node_weights_must_be_one:
+            assert cost == 1
         assert tag is None
         self._graph[i].add(j)
         if j not in self._graph:
@@ -97,10 +163,27 @@ class DirectionalGraph(IDirectionalGraph):
         if i not in self._reverse_graph:
             self._reverse_graph[j] = set()
 
+        if not self.all_edge_weights_must_be_one:
+            if self._edge_weights_are_symmetrical:
+                if i < j:
+                    self._edge_weights[(i, j)] = cost
+                else:
+                    self._edge_weights[(j, i)] = cost
+            else:
+                self._edge_weights[(i, j)] = cost
+
     @overrides
     def get_connection_weight(self, i: int, j: int) -> int:
         assert i in self
-        return 1
+        if self.all_edge_weights_must_be_one:
+            return 1
+        if self._edge_weights_are_symmetrical:
+            if i < j:
+                return self._edge_weights[(i, j)]
+            else:
+                return self._edge_weights[(j, i)]
+        else:
+            return self._edge_weights[(i, j)]
 
     @overrides
     def plot(self, show_stronly_connected: bool = True) -> graphviz.Digraph:
@@ -118,23 +201,29 @@ class DirectionalGraph(IDirectionalGraph):
                 if node in cg.get_nodes():
                     if len(cg.get_children(node)) > 1:
                         flag_cg = True
+            node_label = f"{node}" if self.all_node_weights_must_be_one else f"{node} ({self.get_node_weight(node)})"
             if flag_cg:
-                out.node(str(node), label=f"{node}", style="filled", color="gray")
+                out.node(str(node), label=node_label, style="filled", color="gray")
             else:
-                out.node(str(node), label=f"{node}")
+                out.node(str(node), label=node_label)
 
         for node in self.get_nodes():
             for child in self.get_children(node):
+                if self.all_edge_weights_must_be_one:
+                    edge_label = None
+                else:
+                    edge_label = f"{self.get_connection_weight(node, child)}"
                 if show_stronly_connected and child in cg.get_children(node):
                     if node in self.get_children(child):
                         if node < child:
                             continue
-                    out.edge(str(node), str(child), dir="both", arrowhead="none", arrowtail="none")
+                    out.edge(str(node), str(child), dir="both", arrowhead="none", arrowtail="none", label=edge_label)
                 elif node in self.get_children(child):
                     if node < child:
-                        out.edge(str(node), str(child), dir="both", arrowhead="normal", arrowtail="normal")
+                        out.edge(str(node), str(child), dir="both", arrowhead="normal", arrowtail="normal",
+                                 label=edge_label)
                 else:
-                    out.edge(str(node), str(child), arrowhead="normal", arrowtail="none")
+                    out.edge(str(node), str(child), arrowhead="normal", arrowtail="none", label=edge_label)
         return out
 
     @overrides
@@ -160,7 +249,7 @@ class DirectionalGraph(IDirectionalGraph):
             processed: dict[int, int] = None,
             parents: dict[int, int] = None,
             process_vertex_early: ProcessVertex = None, process_edge: ProcessEdge = None,
-            process_vertex_late: ProcessVertex = None) -> None:
+            process_vertex_late: ProcessVertex = None) -> int:
 
         if discovered is None:
             discovered = {}
@@ -283,14 +372,28 @@ class DirectionalGraph(IDirectionalGraph):
     @overrides
     def remove_node(self, i: int):
         for j in self._graph[i]:
+            if (i, j) in self._edge_weights:
+                del self._edge_weights[(i, j)]
+            if (j, i) in self._edge_weights:
+                del self._edge_weights[(j, i)]
             self._reverse_graph[j].remove(i)
         for j in self._reverse_graph[i]:
             self._graph[j].remove(i)
         del self._graph[i]
         del self._reverse_graph[i]
+        del self._node_weights[i]
+
+
+    @overrides
+    def get_node_weight(self, i: int) -> int:
+        return self._node_weights[i]
 
     @overrides
     def remove_connection(self, i: int, j: int):
+        if (i, j) in self._edge_weights:
+            del self._edge_weights[(i, j)]
+        if (j, i) in self._edge_weights:
+            del self._edge_weights[(j, i)]
         self._graph[i].remove(j)
         self._reverse_graph[j].remove(i)
 
@@ -301,9 +404,13 @@ class DirectionalGraph(IDirectionalGraph):
                 self.remove_node(i)
 
     @overrides
-    def add_node(self, i: int):
+    def add_node(self, i: int, weight: int = 1):
         self._graph[i] = set()
         self._reverse_graph[i] = set()
+        if self.all_node_weights_must_be_one:
+            assert weight == 1
+        else:
+            self._node_weights[i] = weight
 
     def find_cut_nodes(self) -> set[int]:
         ans = set()

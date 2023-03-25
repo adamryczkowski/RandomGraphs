@@ -15,6 +15,20 @@ class DenseGraph(IGraph):
     _groups: list[set[int]]
     _group_id: dict[int, int]  # maps node to group id
 
+    @overrides
+    def get_node_weight(self, i: int) -> int:
+        return 1
+
+    @property
+    @overrides
+    def all_node_weights_must_be_one(self) -> bool:
+        return True
+
+    @property
+    @overrides
+    def all_edge_weights_must_be_one(self) -> bool:
+        return True
+
     def __init__(self):
         self._groups = []
         self._group_id = {}
@@ -76,7 +90,8 @@ class DenseGraph(IGraph):
         return 1
 
     @overrides
-    def add_node(self, i: int):
+    def add_node(self, i: int, weight: int = 1):
+        assert weight == 1
         if i not in self._group_id:
             self._groups.append({i})
             self._group_id[i] = len(self._groups) - 1
