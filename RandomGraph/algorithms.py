@@ -52,7 +52,11 @@ def find_articulation_points(graph: IUndirectionalGraph) -> set[int]:
     """
     reachable_ancestor = {}
     tree_out_degree: dict[int, int] = defaultdict(int)
-    out = set()
+    out: set[int] = set()
+    # TODO: Modify the algorithm to return the articulation points as a dict
+    # out: dict[int, int] = {} # Node ID -> dict[int, dict[frozenset[int], int]];
+    # Every key is an articulation point.
+    # Value is a dictionary that maps a set of children into the number nodes in the subtree that connects the child/children.
     parents: dict[int, int] = {}
     discovered: dict[int, int] = {}
 

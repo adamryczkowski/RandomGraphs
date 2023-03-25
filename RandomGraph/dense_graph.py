@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Optional
+
 import graphviz
 from overrides import overrides
 
@@ -39,7 +41,8 @@ class DenseGraph(IGraph):
         return str(self)
 
     @overrides
-    def push_connection(self, i: int, j: int):
+    def push_connection(self, i: int, j: int, tag: Optional[str] = None, cost: int = 1):
+        assert cost == 1
         if i in self._group_id:
             group_id1 = self._group_id[i]
             group1 = self._groups[group_id1]
@@ -66,6 +69,11 @@ class DenseGraph(IGraph):
                 self._groups.append({i, j})
                 self._group_id[i] = group_id
                 self._group_id[j] = group_id
+
+    @overrides
+    def get_connection_weight(self, i: int, j: int) -> int:
+        assert i in self
+        return 1
 
     @overrides
     def add_node(self, i: int):

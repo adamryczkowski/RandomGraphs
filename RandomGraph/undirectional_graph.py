@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+from collections import defaultdict
+from typing import Optional
+
 import graphviz
 import numpy as np
-from collections import defaultdict
+from overrides import overrides
 
 from .ifaces import IUndirectionalGraph, ProcessEdge, ProcessVertex, IGraph, EdgeType
-
-from overrides import overrides
 
 
 class UndirectionalGraph(IUndirectionalGraph):
@@ -139,9 +140,16 @@ class UndirectionalGraph(IUndirectionalGraph):
         return time // 2
 
     @overrides
-    def push_connection(self, i: int, j: int):
+    def push_connection(self, i: int, j: int, tag: Optional[str] = None, cost: int = 1):
+        assert cost == 1
+        assert tag is None
         self._graph[i].add(j)
         self._graph[j].add(i)
+
+    @overrides
+    def get_connection_weight(self, i: int, j: int) -> int:
+        assert i in self
+        return 1
 
     @overrides
     def plot(self) -> graphviz.Digraph:

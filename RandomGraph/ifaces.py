@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import abstractmethod, ABC
 from enum import Enum
-from typing import Callable, Protocol
+from typing import Callable, Protocol, Optional
 
 import graphviz
 
@@ -45,7 +45,11 @@ class ProcessEdge(Protocol):
 class IGraph(ABC):
 
     @abstractmethod
-    def push_connection(self, i: int, j: int):
+    def push_connection(self, i: int, j: int, tag: Optional[str] = None, cost:int = 1):
+        pass
+
+    @abstractmethod
+    def get_connection_weight(self, i: int, j: int) -> int:
         pass
 
     @abstractmethod

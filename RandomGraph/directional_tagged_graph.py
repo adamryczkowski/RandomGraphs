@@ -1,6 +1,8 @@
+from typing import Optional
+
 import graphviz
+
 from .directional_graph import DirectionalGraph
-from typing import Any, Optional
 from .ifaces import IGraph
 
 
@@ -12,7 +14,8 @@ class DirectionalTaggedGraph(DirectionalGraph):
         self.tags = {}
 
     # noinspection PyMethodOverriding
-    def push_connection(self, i: int, j: int, tag: str):
+    def push_connection(self, i: int, j: int, tag: Optional[str] = None, cost: int = 1):
+        assert cost == 1
         super().push_connection(i, j)
         if i < j:
             self.tags[(i, j)] = tag

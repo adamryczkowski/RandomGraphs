@@ -86,7 +86,9 @@ class DirectionalGraph(IDirectionalGraph):
     def __contains__(self, i: int, j: int):
         return j in self._graph[i]
 
-    def push_connection(self, i: int, j: int):
+    def push_connection(self, i: int, j: int, tag: str = None, cost: int = 1):
+        assert cost == 1
+        assert tag is None
         self._graph[i].add(j)
         if j not in self._graph:
             self._graph[j] = set()
@@ -94,6 +96,11 @@ class DirectionalGraph(IDirectionalGraph):
         self._reverse_graph[j].add(i)
         if i not in self._reverse_graph:
             self._reverse_graph[j] = set()
+
+    @overrides
+    def get_connection_weight(self, i: int, j: int) -> int:
+        assert i in self
+        return 1
 
     @overrides
     def plot(self, show_stronly_connected: bool = True) -> graphviz.Digraph:
